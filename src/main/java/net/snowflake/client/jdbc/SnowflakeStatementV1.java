@@ -259,6 +259,34 @@ class SnowflakeStatementV1 implements Statement, SnowflakeStatement {
       ExecTimeTelemetryData execTimeData)
       throws SQLException {
     SFBaseResultSet sfResultSet;
+
+    if (sql != null) {
+      String trimmedSql = sql.trim();
+      try {
+        trimmedSql = trimmedSql.substring(trimmedSql.lastIndexOf("\n"));
+        trimmedSql = trimmedSql.trim();
+      }
+      catch (StringIndexOutOfBoundsException ex){
+        ex.printStackTrace();
+      }
+      if (trimmedSql.startsWith("-- Looker Query Context")) {
+        ResultSet rs_wh = this.executeAsyncQuery("SHOW WAREHOUSES LIKE 'LOOKER_WH_%';");
+        String queryId = rs_wh.unwrap(SnowflakeResultSet.class).getQueryID();
+        ResultSet rs = this.executeAsyncQuery("SELECT \"name\" AS name, \"queued\" AS queued FROM table(result_scan('" + queryId + "')) order by 1;");
+        while (rs.next()) {
+          try {
+            if (Integer.parseInt(rs.getString("QUEUED")) < 2) {
+              this.execute("USE WAREHOUSE " + rs.getString("NAME") + ";");
+              break;
+            }
+          }
+          catch (NumberFormatException ex){
+            ex.printStackTrace();
+          }
+        }
+      }
+    }
+
     try {
       if (asyncExec) {
         if (!connection.getHandler().supportsAsyncQuery()) {
