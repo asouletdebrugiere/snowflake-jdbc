@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.text.*;
 import net.snowflake.client.TestUtil;
 import net.snowflake.client.core.SFException;
 import net.snowflake.client.jdbc.ErrorCode;
@@ -117,6 +118,10 @@ public class IntToFixedConverterTest extends BaseConverterTest {
       BigDecimal bigDecimalVal = converter.toBigDecimal(i);
       Object objectVal = converter.toObject(i);
       String stringVal = converter.toString(i);
+      DecimalFormat df = new DecimalFormat("0.000");
+      DecimalFormatSymbols sym = DecimalFormatSymbols.getInstance();
+      sym.setDecimalSeparator(',');
+      df.setDecimalFormatSymbols(sym);
 
       if (nullValIndex.contains(i)) {
         assertThat(bigDecimalVal, nullValue());
@@ -127,7 +132,7 @@ public class IntToFixedConverterTest extends BaseConverterTest {
         BigDecimal expectedVal = BigDecimal.valueOf(expectedValues.get(i), 3);
         assertThat(bigDecimalVal, is(expectedVal));
         assertThat(objectVal, is(expectedVal));
-        assertThat(stringVal, is(expectedVal.toString()));
+        assertThat(stringVal, is(df.format(expectedVal)));
         assertThat(converter.toBytes(i), is(notNullValue()));
       }
     }
